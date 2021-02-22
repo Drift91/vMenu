@@ -583,7 +583,7 @@ namespace vMenuClient
                 
                 menu.OnMenuClose += (sender) =>
                 {
-                    OnlinePlayersMenu.StopUpdatePlayerInterval();
+                    OnlinePlayersMenu.StopUpdatePlayerTimer();
                 };
             }
             if (IsAllowed(Permission.OPUnban) || IsAllowed(Permission.OPViewBannedPlayers))
