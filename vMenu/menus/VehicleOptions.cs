@@ -405,14 +405,14 @@ namespace vMenuClient
                 menu.AddMenuItem(highbeamsOnHonk);
             }
 
-            if (IsAllowed(Permission.VODelete)) // DELETE VEHICLE
-            {
-                menu.AddMenuItem(deleteBtn);
-            }
-
             if (IsAllowed(Permission.VODestroyEngine)) // DESTROY ENGINE
             {
                 menu.AddMenuItem(destroyEngine);
+            }
+
+            if (IsAllowed(Permission.VODelete)) // DELETE VEHICLE
+            {
+                menu.AddMenuItem(deleteBtn);
             }
             #endregion
 
