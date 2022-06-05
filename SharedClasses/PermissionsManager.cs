@@ -378,12 +378,21 @@ namespace vMenuShared
         {
             if (ArePermissionsSetup || checkAnyway)
             {
-                if (allowedPerms.ContainsKey(permission))
+                bool staffPermissionAllowed = (
+                    Permissions.ContainsKey(Permission.Staff) && Permissions[Permission.Staff]
+                ) || (
+                    Permissions.ContainsKey(Permission.Everything) && Permissions[Permission.Everything]
+                );
+                // Return false immediately if the staff only convar is set and the user is not a staff member.
+                if (ConfigManager.GetSettingsBool(ConfigManager.Setting.vmenu_menu_staff_only) && !staffPermissionAllowed)
                 {
-                    return allowedPerms[permission];
+                    return false;
                 }
 
-                allowedPerms[permission] = false;
+                if (allowedPerms.ContainsKey(permission) && allowedPerms[permission])
+                    return true;
+                else if (!allowedPerms.ContainsKey(permission))
+                    allowedPerms[permission] = false;
 
                 // Get a list of all permissions that are (parents) of the current permission, including the current permission.
                 List<Permission> permissionsToCheck = GetPermissionAndParentPermissions(permission);
@@ -395,8 +404,6 @@ namespace vMenuShared
                     return true;
                 }
             }
-
-            // Return false if nothing is allowed.
             return false;
         }
 #endif
@@ -530,15 +537,11 @@ namespace vMenuShared
         /// <param name="permissions"></param>
         public static void SetPermissions(string permissions)
         {
-            if (!IsDuplicityVersion())
+            Permissions = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<Permission, bool>>(permissions);
+            // if debug logging.
+            if (GetResourceMetadata(GetCurrentResourceName(), "client_debug_mode", 0) == "true")
             {
-                Permissions = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<Permission, bool>>(permissions);
-                // if debug logging.
-                if (GetResourceMetadata(GetCurrentResourceName(), "client_debug_mode", 0) == "true")
-                {
-                    Debug.WriteLine("[vMenu] [Permissions] " + Newtonsoft.Json.JsonConvert.SerializeObject(Permissions, Newtonsoft.Json.Formatting.None));
-                }
-
+                Debug.WriteLine("[vMenu] [Permissions] " + Newtonsoft.Json.JsonConvert.SerializeObject(Permissions, Newtonsoft.Json.Formatting.None));
             }
         }
 #endif

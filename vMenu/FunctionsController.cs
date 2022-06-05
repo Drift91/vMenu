@@ -452,7 +452,7 @@ namespace vMenuClient
                     }
 
                     // Manage "no helmet"
-                    var ped = new Ped(Game.PlayerPed.Handle);
+                    var ped = Game.PlayerPed;
                     // If the no helmet feature is turned on, disalbe "ped can wear helmet"
                     if (MainMenu.VehicleOptionsMenu.VehicleNoBikeHelemet && IsAllowed(Permission.VONoHelmet))
                     {
@@ -487,7 +487,6 @@ namespace vMenuClient
                             }
                         }
                     }
-
                     await Delay(0);
                 }
             }
@@ -2217,7 +2216,7 @@ namespace vMenuClient
                             }
                             else // blips are not enabled.
                             {
-                                if (!(p.Character.AttachedBlip == null || !p.Character.AttachedBlip.Exists()) && MainMenu.OnlinePlayersMenu != null && !MainMenu.OnlinePlayersMenu.PlayersWaypointList.Contains(p.Handle))
+                                if (!(p.Character.AttachedBlip == null || !p.Character.AttachedBlip.Exists()) && MainMenu.OnlinePlayersMenu != null && !MainMenu.OnlinePlayersMenu.PlayersWaypointList.Contains(p.ServerId))
                                 {
                                     p.Character.AttachedBlip.Delete(); // remove player blip if it exists.
                                 }
@@ -2330,14 +2329,17 @@ namespace vMenuClient
             await Delay(500);
             if (MainMenu.OnlinePlayersMenu.PlayersWaypointList.Count > 0)
             {
-                foreach (int playerId in MainMenu.OnlinePlayersMenu.PlayersWaypointList)
+                foreach (int serverId in MainMenu.OnlinePlayersMenu.PlayersWaypointList)
                 {
-                    if (!NetworkIsPlayerActive(playerId))
+                    var player = MainMenu.PlayersList.FirstOrDefault(a => a.ServerId == serverId);
+
+                    if (player == null)
                     {
-                        waypointPlayerIdsToRemove.Add(playerId);
+                        waypointPlayerIdsToRemove.Add(serverId);
                     }
-                    else
+                    else if (player.Character != null)
                     {
+                        var playerId = player.Handle;
                         Vector3 pos1 = GetEntityCoords(GetPlayerPed(playerId), true);
                         Vector3 pos2 = Game.PlayerPed.Position;
                         if (Vdist2(pos1.X, pos1.Y, pos1.Z, pos2.X, pos2.Y, pos2.Z) < 20f)
@@ -2358,6 +2360,15 @@ namespace vMenuClient
                 {
                     foreach (int id in waypointPlayerIdsToRemove)
                     {
+                        if (MainMenu.OnlinePlayersMenu.PlayerCoordWaypoints.TryGetValue(id, out var blip))
+                        {
+                            if (DoesBlipExist(blip))
+                            {
+                                SetBlipRoute(blip, false);
+                                RemoveBlip(ref blip);
+                            }
+                        }
+
                         MainMenu.OnlinePlayersMenu.PlayersWaypointList.Remove(id);
                     }
                     await Delay(10);

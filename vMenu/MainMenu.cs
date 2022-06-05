@@ -268,16 +268,6 @@ namespace vMenuClient
             {
                 Tick += OnTick;
             }
-            try
-            {
-                SetClockDate(DateTime.Now.Day, DateTime.Now.Month, DateTime.Now.Year);
-            }
-            catch (InvalidTimeZoneException timeEx)
-            {
-                Debug.WriteLine($"[vMenu] [Error] Could not set the in-game day, month and year because of an invalid timezone(?).");
-                Debug.WriteLine($"[vMenu] [Error] InvalidTimeZoneException: {timeEx.Message}");
-                Debug.WriteLine($"[vMenu] [Error] vMenu will continue to work normally.");
-            }
 
             // Clear all previous pause menu info/brief messages on resource start.
             ClearBrief();
@@ -376,7 +366,6 @@ namespace vMenuClient
                 await Delay(100);
             }
             PostPermissionsSetup();
-            TriggerEvent("vMenu:SetupTickFunctions");
         }
         #endregion
 
@@ -402,60 +391,68 @@ namespace vMenuClient
                     break;
             }
 
-            if ((IsAllowed(Permission.Staff) && GetSettingsBool(Setting.vmenu_menu_staff_only)) || GetSettingsBool(Setting.vmenu_menu_staff_only) == false)
+            bool canUseMenu()
             {
-                if (GetSettingsInt(Setting.vmenu_menu_toggle_key) != -1)
-                {
-                    MenuToggleKey = (Control)GetSettingsInt(Setting.vmenu_menu_toggle_key);
-                    //MenuToggleKey = GetSettingsInt(Setting.vmenu_menu_toggle_key);
-                }
-                if (GetSettingsInt(Setting.vmenu_noclip_toggle_key) != -1)
-                {
-                    NoClipKey = GetSettingsInt(Setting.vmenu_noclip_toggle_key);
-                }
-
-                // Create the main menu.
-                Menu = new Menu(Game.Player.Name, "Main Menu");
-                PlayerSubmenu = new Menu(Game.Player.Name, "Player Related Options");
-                VehicleSubmenu = new Menu(Game.Player.Name, "Vehicle Related Options");
-                WorldSubmenu = new Menu(Game.Player.Name, "World Options");
-
-                // Add the main menu to the menu pool.
-                MenuController.AddMenu(Menu);
-                MenuController.MainMenu = Menu;
-
-                MenuController.AddSubmenu(Menu, PlayerSubmenu);
-                MenuController.AddSubmenu(Menu, VehicleSubmenu);
-                MenuController.AddSubmenu(Menu, WorldSubmenu);
-
-                // Create all (sub)menus.
-                CreateSubmenus();
-
-                if (!GetSettingsBool(Setting.vmenu_disable_player_stats_setup))
-                {
-                    // Manage Stamina
-                    if (PlayerOptionsMenu != null && PlayerOptionsMenu.PlayerStamina && IsAllowed(Permission.POUnlimitedStamina))
-                        StatSetInt((uint)GetHashKey("MP0_STAMINA"), 100, true);
-                    else
-                        StatSetInt((uint)GetHashKey("MP0_STAMINA"), 0, true);
-
-                    // Manage other stats, in order of appearance in the pause menu (stats) page.
-                    StatSetInt((uint)GetHashKey("MP0_SHOOTING_ABILITY"), 100, true);        // Shooting
-                    StatSetInt((uint)GetHashKey("MP0_STRENGTH"), 100, true);                // Strength
-                    StatSetInt((uint)GetHashKey("MP0_STEALTH_ABILITY"), 100, true);         // Stealth
-                    StatSetInt((uint)GetHashKey("MP0_FLYING_ABILITY"), 100, true);          // Flying
-                    StatSetInt((uint)GetHashKey("MP0_WHEELIE_ABILITY"), 100, true);         // Driving
-                    StatSetInt((uint)GetHashKey("MP0_LUNG_CAPACITY"), 100, true);           // Lung Capacity
-                    StatSetFloat((uint)GetHashKey("MP0_PLAYER_MENTAL_STATE"), 0f, true);    // Mental State
-                }
+                if (GetSettingsBool(Setting.vmenu_menu_staff_only) == false) return true;
+                else if (IsAllowed(Permission.Staff)) return true;
+                return false;
             }
-            else
+
+            if (!canUseMenu())
             {
                 MenuController.MainMenu = null;
                 MenuController.DisableMenuButtons = true;
                 MenuController.DontOpenAnyMenu = true;
                 MenuController.MenuToggleKey = (Control)(-1); // disables the menu toggle key
+                return;
             }
+
+            if (GetSettingsInt(Setting.vmenu_menu_toggle_key) != -1)
+            {
+                MenuToggleKey = (Control)GetSettingsInt(Setting.vmenu_menu_toggle_key);
+                //MenuToggleKey = GetSettingsInt(Setting.vmenu_menu_toggle_key);
+            }
+            if (GetSettingsInt(Setting.vmenu_noclip_toggle_key) != -1)
+            {
+                NoClipKey = GetSettingsInt(Setting.vmenu_noclip_toggle_key);
+            }
+
+            // Create the main menu.
+            Menu = new Menu(Game.Player.Name, "Main Menu");
+            PlayerSubmenu = new Menu(Game.Player.Name, "Player Related Options");
+            VehicleSubmenu = new Menu(Game.Player.Name, "Vehicle Related Options");
+            WorldSubmenu = new Menu(Game.Player.Name, "World Options");
+
+            // Add the main menu to the menu pool.
+            MenuController.AddMenu(Menu);
+            MenuController.MainMenu = Menu;
+
+            MenuController.AddSubmenu(Menu, PlayerSubmenu);
+            MenuController.AddSubmenu(Menu, VehicleSubmenu);
+            MenuController.AddSubmenu(Menu, WorldSubmenu);
+
+            // Create all (sub)menus.
+            CreateSubmenus();
+
+            if (!GetSettingsBool(Setting.vmenu_disable_player_stats_setup))
+            {
+                // Manage Stamina
+                if (PlayerOptionsMenu != null && PlayerOptionsMenu.PlayerStamina && IsAllowed(Permission.POUnlimitedStamina))
+                    StatSetInt((uint)GetHashKey("MP0_STAMINA"), 100, true);
+                else
+                    StatSetInt((uint)GetHashKey("MP0_STAMINA"), 0, true);
+
+                // Manage other stats, in order of appearance in the pause menu (stats) page.
+                StatSetInt((uint)GetHashKey("MP0_SHOOTING_ABILITY"), 100, true);        // Shooting
+                StatSetInt((uint)GetHashKey("MP0_STRENGTH"), 100, true);                // Strength
+                StatSetInt((uint)GetHashKey("MP0_STEALTH_ABILITY"), 100, true);         // Stealth
+                StatSetInt((uint)GetHashKey("MP0_FLYING_ABILITY"), 100, true);          // Flying
+                StatSetInt((uint)GetHashKey("MP0_WHEELIE_ABILITY"), 100, true);         // Driving
+                StatSetInt((uint)GetHashKey("MP0_LUNG_CAPACITY"), 100, true);           // Lung Capacity
+                StatSetFloat((uint)GetHashKey("MP0_PLAYER_MENTAL_STATE"), 0f, true);    // Mental State
+            }
+
+            TriggerEvent("vMenu:SetupTickFunctions");
         }
 
         /// <summary>
