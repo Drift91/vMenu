@@ -471,13 +471,13 @@ namespace vMenuClient
 
                     if (MainMenu.VehicleOptionsMenu.VehicleInfiniteFuel && DecorIsRegisteredAsType("_Fuel_Level", 1) && IsAllowed(Permission.VOInfiniteFuel))
                     {
-                        float maxFuelLevel = GetVehicleHandlingFloat(veh.Handle, "CHandlingData", "fPetrolTankVolume");
-                        float currentFuelLevel = GetVehicleFuelLevel(veh.Handle);
-                        if (maxFuelLevel > 5f && currentFuelLevel < (maxFuelLevel * 0.95f))
+                        //float maxFuelLevel = GetVehicleHandlingFloat(veh.Handle, "CHandlingData", "fPetrolTankVolume");
+                        float currentFuelLevel = /* GetVehicleFuelLevel(veh.Handle) */ DecorGetFloat(veh.Handle, "_Fuel_Level");
+                        if (/* maxFuelLevel > 5f && */ currentFuelLevel < (/* maxFuelLevel * 0.95f */ 95f))
                         {
                             try
                             {
-                                DecorSetFloat(veh.Handle, "_Fuel_Level", maxFuelLevel);
+                                DecorSetFloat(veh.Handle, "_Fuel_Level", /* maxFuelLevel */ 100f);
                             }
                             catch (Exception e)
                             {
