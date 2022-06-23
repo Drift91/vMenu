@@ -470,8 +470,7 @@ namespace vMenuClient
                     if (MainMenu.VehicleOptionsMenu.VehicleInfiniteFuel && DecorIsRegisteredAsType("_Fuel_Level", 1) && IsAllowed(Permission.VOInfiniteFuel))
                     {
                         float maxFuelLevel = GetVehicleHandlingFloat(veh.Handle, "CHandlingData", "fPetrolTankVolume");
-                        //float currentFuelLevel = GetVehicleFuelLevel(veh.Handle);
-                        float currentFuelLevel = DecorGetFloat(veh.Handle, "_Fuel_Level"); //modified by Drift_91 for his port of FRFuelPlus
+                        float currentFuelLevel = GetVehicleFuelLevel(veh.Handle);
                         if (maxFuelLevel > 5f && currentFuelLevel < (maxFuelLevel * 0.95f))
                         {
                             try
