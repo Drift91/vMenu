@@ -471,7 +471,7 @@ namespace vMenuClient
                     {
                         //float maxFuelLevel = GetVehicleHandlingFloat(veh.Handle, "CHandlingData", "fPetrolTankVolume");
                         float currentFuelLevel = /* GetVehicleFuelLevel(veh.Handle) */ DecorGetFloat(veh.Handle, "_Fuel_Level");
-                        if (/* maxFuelLevel > 5f && */ currentFuelLevel < (/* maxFuelLevel * 0.95f */ 95f))
+                        if (/* maxFuelLevel > 5f && */ currentFuelLevel < (/* maxFuelLevel * 0.95f */ 99.6f))
                         {
                             try
                             {
