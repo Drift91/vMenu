@@ -153,8 +153,6 @@ namespace vMenuClient
 
             new VehicleColor(128, "GREEN"),
 
-            new VehicleColor(131, "WHITE"),
-
             new VehicleColor(148, "Purple"),
             new VehicleColor(149, "MIGHT_PURPLE"),
 
@@ -258,7 +256,7 @@ namespace vMenuClient
 
             new VehicleColor(129, "RACING_GREEN"),
             new VehicleColor(130, "ORANGE"),
-
+            new VehicleColor(131, "WHITE"),
             new VehicleColor(132, "FROST_WHITE"),
             new VehicleColor(133, "OLIVE_GREEN"),
         };
