@@ -350,6 +350,7 @@ namespace vMenuShared
             MSRestoreWeapons,
             MSDriftMode,
             MSEntitySpawner,
+            MSDevTools,
             #endregion
 
             // Voice Chat
