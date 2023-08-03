@@ -5,7 +5,7 @@
     <Configurations>Release;Debug</Configurations>
     <AssemblyName>vMenuClient.net</AssemblyName>
     <TargetName>$(AssemblyName)</TargetName>
-    <OutputPath>..\..\build\</OutputPath>
+    <OutputPath>..\build\</OutputPath>
     <DefineConstants>CLIENT</DefineConstants>
     <LangVersion>8.0</LangVersion>
   </PropertyGroup>
@@ -19,7 +19,7 @@
 
     <Reference Include="Microsoft.CSharp" />
     
-    <PackageReference Include="CitizenFX.Core.Client" Version="1.0.5049">
+    <PackageReference Include="CitizenFX.Core.Client" Version="1.0.6302">
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
     
