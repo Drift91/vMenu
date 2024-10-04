@@ -534,15 +534,15 @@ namespace vMenuClient
                         ped.RemoveHelmet(true);
                     }
 
-                    if (MainMenu.VehicleOptionsMenu.VehicleInfiniteFuel && DecorIsRegisteredAsType("_Fuel_Level", 1) && IsAllowed(Permission.VOInfiniteFuel))
+                    if (MainMenu.VehicleOptionsMenu.VehicleInfiniteFuel && DecorIsRegisteredAsType("_ANDY_FUEL_DECORE_", 1) && IsAllowed(Permission.VOInfiniteFuel))
                     {
-                        var maxFuelLevel = GetVehicleHandlingFloat(veh.Handle, "CHandlingData", "fPetrolTankVolume");
-                        var currentFuelLevel = GetVehicleFuelLevel(veh.Handle);
-                        if (maxFuelLevel > 5f && currentFuelLevel < (maxFuelLevel * 0.95f))
+                        //var maxFuelLevel = GetVehicleHandlingFloat(veh.Handle, "CHandlingData", "fPetrolTankVolume");
+                        var currentFuelLevel = /* GetVehicleFuelLevel(veh.Handle) */ DecorGetFloat(veh.Handle, "_ANDY_FUEL_DECORE_");
+                        if (/* maxFuelLevel > 5f && */ currentFuelLevel < (/* maxFuelLevel * 0.95f */ 99.6f))
                         {
                             try
                             {
-                                DecorSetFloat(veh.Handle, "_Fuel_Level", maxFuelLevel);
+                                DecorSetFloat(veh.Handle, "_ANDY_FUEL_DECORE_", /* maxFuelLevel */ 100f);
                             }
                             catch (Exception e)
                             {
