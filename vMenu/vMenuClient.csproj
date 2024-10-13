@@ -61,10 +61,4 @@
   <ItemGroup>
     <None Include="D:\tomgr\Documents\GitHub-Repos\vMenu\vMenu\vMenu\.editorconfig" />
   </ItemGroup>
-
-  <ItemGroup>
-    <Reference Update="System.Runtime.Serialization">
-      <Private>True</Private>
-    </Reference>
-  </ItemGroup>
 </Project>
