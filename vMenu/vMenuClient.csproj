@@ -16,7 +16,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="MenuAPI.FiveM" Version="3.2.2" />
+
+    <Reference Include="MenuAPI">
+      <HintPath>..\dependencies\client\MenuAPI.dll</HintPath>
+    </Reference>
 
     <Reference Include="Microsoft.CSharp" />
     
