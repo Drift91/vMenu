@@ -20,6 +20,7 @@ namespace vMenuClient.menus
         #region Variables
         // Menu variable, will be defined in CreateMenu()
         private Menu menu;
+        public static Dictionary<uint, Dictionary<int, string>> VehicleExtras;
 
         // Submenus
         public Menu VehicleModMenu { get; private set; }
@@ -180,10 +181,10 @@ namespace vMenuClient.menus
                 "to apply the selected level.");
             var licensePlates = new List<string> {
                 GetLabelText("CMOD_PLA_0"), // Plate Index 0 // BlueOnWhite1
-                GetLabelText("CMOD_PLA_1"), // Plate Index 1 // YellowOnBlack
-                GetLabelText("CMOD_PLA_2"), // Plate Index 2 // YellowOnBlue
-                GetLabelText("CMOD_PLA_3"), // Plate Index 3 // BlueOnWhite2
-                GetLabelText("CMOD_PLA_4"), // Plate Index 4 // BlueOnWhite3
+                GetLabelText("CMOD_PLA_1"), // Plate Index 1 // BlueOnWhite2
+                GetLabelText("CMOD_PLA_2"), // Plate Index 2 // BlueOnWhite3
+                GetLabelText("CMOD_PLA_3"), // Plate Index 3 // YellowOnBlue
+                GetLabelText("CMOD_PLA_4"), // Plate Index 4 // YellowOnBlack
                 "North Yankton", // Plate Index 5 // NorthYankton
                 GetLabelText("CMOD_PLA_6"), // Plate Index 6 // ECola
                 GetLabelText("CMOD_PLA_7"), // Plate Index 7 // LasVenturas
@@ -499,7 +500,7 @@ namespace vMenuClient.menus
                     var vehicle = GetVehicle();
 
                     // Check if the player is the driver of the vehicle, if so, continue.
-                    if (vehicle.GetPedOnSeat(VehicleSeat.Driver) == new Ped(Game.PlayerPed.Handle))
+                    if (vehicle.GetPedOnSeat(VehicleSeat.Driver) == Game.PlayerPed)
                     {
                         // Repair vehicle.
                         if (item == fixVehicle)
@@ -707,6 +708,7 @@ namespace vMenuClient.menus
                 else if (item == infiniteFuel)
                 {
                     VehicleInfiniteFuel = _checked;
+                    TriggerEvent("vMenu:InfiniteFuelToggled", _checked);
                 }
             };
             #endregion
@@ -747,16 +749,16 @@ namespace vMenuClient.menus
                                 veh.Mods.LicensePlateStyle = LicensePlateStyle.BlueOnWhite1;
                                 break;
                             case 1:
-                                veh.Mods.LicensePlateStyle = LicensePlateStyle.YellowOnBlack;
-                                break;
-                            case 2:
-                                veh.Mods.LicensePlateStyle = LicensePlateStyle.YellowOnBlue;
-                                break;
-                            case 3:
                                 veh.Mods.LicensePlateStyle = LicensePlateStyle.BlueOnWhite2;
                                 break;
-                            case 4:
+                            case 2:
                                 veh.Mods.LicensePlateStyle = LicensePlateStyle.BlueOnWhite3;
+                                break;
+                            case 3:
+                                veh.Mods.LicensePlateStyle = LicensePlateStyle.YellowOnBlue;
+                                break;
+                            case 4:
+                                veh.Mods.LicensePlateStyle = LicensePlateStyle.YellowOnBlack;
                                 break;
                             case 5:
                                 veh.Mods.LicensePlateStyle = LicensePlateStyle.NorthYankton;
@@ -1178,7 +1180,7 @@ namespace vMenuClient.menus
                         switch (itemIndex)
                         {
                             case 0:
-                            case 1:    
+                            case 1:
                             case 2:
                                 primaryColor = VehicleData.ClassicColors[newIndex].id;
                                 break;
@@ -1235,7 +1237,7 @@ namespace vMenuClient.menus
                                 secondaryColor = VehicleData.WornColors[newIndex].id;
                                 break;
                         }
-                        
+
                         ClearVehicleCustomSecondaryColour(veh.Handle);
                         SetVehicleColours(veh.Handle, primaryColor, secondaryColor);
                     }
@@ -1632,6 +1634,12 @@ namespace vMenuClient.menus
                     // Check if the vehicle exists, it's actually a vehicle, it's not dead/broken and the player is in the drivers seat.
                     if (veh != null && veh.Exists() && !veh.IsDead && veh.Driver == Game.PlayerPed)
                     {
+                        Dictionary<int, string> extraLabels;
+                        if (!VehicleExtras.TryGetValue((uint)veh.Model.Hash, out extraLabels))
+                        {
+                            extraLabels = new Dictionary<int, string>();
+                        }
+                      
                         //List<int> extraIds = new List<int>();
                         // Loop through all possible extra ID's (AFAIK: 0-14).
                         for (var extra = 0; extra < 14; extra++)
@@ -1642,8 +1650,12 @@ namespace vMenuClient.menus
                                 // Add it's ID to the list.
                                 //extraIds.Add(extra);
 
+                                // Create the checkbox label
+                                string extraLabel;
+                                if (!extraLabels.TryGetValue(extra, out extraLabel))
+                                    extraLabel = $"Extra #{extra}";
                                 // Create a checkbox for it.
-                                var extraCheckbox = new MenuCheckboxItem($"Extra #{extra}", extra.ToString(), veh.IsExtraOn(extra));
+                                var extraCheckbox = new MenuCheckboxItem(extraLabel, extra.ToString(), veh.IsExtraOn(extra));
                                 // Add the checkbox to the menu.
                                 VehicleComponentsMenu.AddMenuItem(extraCheckbox);
 
@@ -1839,16 +1851,16 @@ namespace vMenuClient.menus
                             case LicensePlateStyle.BlueOnWhite1:
                                 listItem.ListIndex = 0;
                                 break;
-                            case LicensePlateStyle.YellowOnBlack:
+                            case LicensePlateStyle.BlueOnWhite2:
                                 listItem.ListIndex = 1;
                                 break;
-                            case LicensePlateStyle.YellowOnBlue:
+                            case LicensePlateStyle.BlueOnWhite3:
                                 listItem.ListIndex = 2;
                                 break;
-                            case LicensePlateStyle.BlueOnWhite2:
+                            case LicensePlateStyle.YellowOnBlue:
                                 listItem.ListIndex = 3;
                                 break;
-                            case LicensePlateStyle.BlueOnWhite3:
+                            case LicensePlateStyle.YellowOnBlack:
                                 listItem.ListIndex = 4;
                                 break;
                             case LicensePlateStyle.NorthYankton:
@@ -2012,7 +2024,7 @@ namespace vMenuClient.menus
                 var xenonHeadlights = new MenuCheckboxItem("Xenon Headlights", "Enable or disable ~b~xenon ~s~headlights.", IsToggleModOn(veh.Handle, 22));
                 var turbo = new MenuCheckboxItem("Turbo", "Enable or disable the ~y~turbo~s~ for this vehicle.", IsToggleModOn(veh.Handle, 18));
                 var bulletProofTires = new MenuCheckboxItem("Bullet Proof Tires", "Enable or disable ~y~bullet proof tires~s~ for this vehicle.", !GetVehicleTyresCanBurst(veh.Handle));
-                
+
                 // Add the checkboxes to the menu.
                 VehicleModMenu.AddMenuItem(toggleCustomWheels);
                 VehicleModMenu.AddMenuItem(xenonHeadlights);
