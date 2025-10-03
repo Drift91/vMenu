@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using MenuAPI;
-using Newtonsoft.Json;
+
 using CitizenFX.Core;
-using static CitizenFX.Core.UI.Screen;
+
+using Newtonsoft.Json;
+
+using vMenuClient.menus;
+
 using static CitizenFX.Core.Native.API;
 using static vMenuClient.CommonFunctions;
 using static vMenuShared.ConfigManager;
@@ -16,6 +18,7 @@ namespace vMenuClient
 {
     public class EventManager : BaseScript
     {
+        public static WeatherOptions WeatherOptionsMenu { get; private set; }
         public static bool IsSnowEnabled => GetSettingsBool(Setting.vmenu_enable_snow);
         public static int GetServerMinutes => MathUtil.Clamp(GetSettingsInt(Setting.vmenu_current_minute), 0, 59);
         public static int GetServerHours => MathUtil.Clamp(GetSettingsInt(Setting.vmenu_current_hour), 0, 23);
@@ -25,6 +28,7 @@ namespace vMenuClient
         public static string GetServerWeather => GetSettingsString(Setting.vmenu_current_weather, "CLEAR");
         public static bool DynamicWeatherEnabled => GetSettingsBool(Setting.vmenu_enable_dynamic_weather);
         public static bool IsBlackoutEnabled => GetSettingsBool(Setting.vmenu_blackout_enabled);
+        public static bool IsVehicleLightsEnabled { get; set; } = GetSettingsBool(Setting.vmenu_vehicle_blackout_enabled);
         public static int WeatherChangeTime => MathUtil.Clamp(GetSettingsInt(Setting.vmenu_weather_change_duration), 0, 45);
 
         /// <summary>
@@ -33,7 +37,8 @@ namespace vMenuClient
         public EventManager()
         {
             // Add event handlers.
-            EventHandlers.Add("vMenu:SetAddons", new Action(SetAddons));
+            EventHandlers.Add("vMenu:SetAddons", new Action(SetConfigOptions)); // DEPRECATED: Backwards-compatible event handler; use 'vMenu:SetConfigOptions' instead
+            EventHandlers.Add("vMenu:SetConfigOptions", new Action(SetConfigOptions));
             EventHandlers.Add("vMenu:SetPermissions", new Action<string>(MainMenu.SetPermissions));
             EventHandlers.Add("vMenu:GoToPlayer", new Action<string>(SummonPlayer));
             EventHandlers.Add("vMenu:KillMe", new Action<string>(KillMe));
@@ -49,9 +54,14 @@ namespace vMenuClient
             EventHandlers.Add("vMenu:UpdateTeleportLocations", new Action<string>(UpdateTeleportLocations));
 
             if (GetSettingsBool(Setting.vmenu_enable_weather_sync))
+            {
                 Tick += WeatherSync;
+            }
+
             if (GetSettingsBool(Setting.vmenu_enable_time_sync))
+            {
                 Tick += TimeSync;
+            }
 
             RegisterNuiCallbackType("disableImportExportNUI");
             RegisterNuiCallbackType("importData");
@@ -105,6 +115,17 @@ namespace vMenuClient
         /// <summary>
         /// Sets the addon models from the addons.json file.
         /// </summary>
+        private void SetConfigOptions()
+        {
+            SetAddons();
+            SetExtras();
+
+            MainMenu.ConfigOptionsSetupComplete = true;
+        }
+
+        /// <summary>
+        /// Sets the addon models from the addons.json file.
+        /// </summary>
         private void SetAddons()
         {
             // reset addons
@@ -112,7 +133,7 @@ namespace vMenuClient
             WeaponOptions.AddonWeapons = new Dictionary<string, uint>();
             PlayerAppearance.AddonPeds = new Dictionary<string, uint>();
 
-            string jsonData = LoadResourceFile(GetCurrentResourceName(), "config/addons.json") ?? "{}";
+            var jsonData = LoadResourceFile(GetCurrentResourceName(), "config/addons.json") ?? "{}";
             try
             {
                 // load new addons.
@@ -121,36 +142,48 @@ namespace vMenuClient
                 // load vehicles
                 if (addons.ContainsKey("vehicles"))
                 {
-                    foreach (string addon in addons["vehicles"])
+                    foreach (var addon in addons["vehicles"])
                     {
                         if (!VehicleSpawner.AddonVehicles.ContainsKey(addon))
+                        {
                             VehicleSpawner.AddonVehicles.Add(addon, (uint)GetHashKey(addon));
+                        }
                         else
+                        {
                             Debug.WriteLine($"[vMenu] [Error] Your addons.json file contains 2 or more entries with the same vehicle name! ({addon}) Please remove duplicate lines!");
+                        }
                     }
                 }
 
                 // load weapons
                 if (addons.ContainsKey("weapons"))
                 {
-                    foreach (string addon in addons["weapons"])
+                    foreach (var addon in addons["weapons"])
                     {
                         if (!WeaponOptions.AddonWeapons.ContainsKey(addon))
+                        {
                             WeaponOptions.AddonWeapons.Add(addon, (uint)GetHashKey(addon));
+                        }
                         else
+                        {
                             Debug.WriteLine($"[vMenu] [Error] Your addons.json file contains 2 or more entries with the same weapon name! ({addon}) Please remove duplicate lines!");
+                        }
                     }
                 }
 
                 // load peds.
                 if (addons.ContainsKey("peds"))
                 {
-                    foreach (string addon in addons["peds"])
+                    foreach (var addon in addons["peds"])
                     {
                         if (!PlayerAppearance.AddonPeds.ContainsKey(addon))
+                        {
                             PlayerAppearance.AddonPeds.Add(addon, (uint)GetHashKey(addon));
+                        }
                         else
+                        {
                             Debug.WriteLine($"[vMenu] [Error] Your addons.json file contains 2 or more entries with the same ped name! ({addon}) Please remove duplicate lines!");
+                        }
                     }
                 }
             }
@@ -158,8 +191,48 @@ namespace vMenuClient
             {
                 Debug.WriteLine($"\n\n^1[vMenu] [ERROR] ^7Your addons.json file contains a problem! Error details: {ex.Message}\n\n");
             }
+        }
 
-            MainMenu.ConfigOptionsSetupComplete = true;
+        /// <summary>
+        /// Sets the extras labels from the extras.json file.
+        /// </summary>
+        private void SetExtras()
+        {
+            // reset addons
+            VehicleOptions.VehicleExtras = new Dictionary<uint, Dictionary<int, string>>();
+
+            string jsonData = LoadResourceFile(GetCurrentResourceName(), "config/extras.json") ?? "{}";
+
+            try
+            {
+                // load new extras.
+                var extras = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<int, string>>>(jsonData);
+
+                foreach (string model in extras.Keys)
+                {
+                    uint modelHash = (uint)GetHashKey(model);
+
+                    if (extras[model] != null && extras[model].Count > 0)
+                    {
+                        if (!VehicleOptions.VehicleExtras.ContainsKey(modelHash) || VehicleOptions.VehicleExtras[modelHash] == null)
+                            VehicleOptions.VehicleExtras.Add(modelHash, extras[model]);
+                        else
+                        {
+                            foreach(int extra in extras[model].Keys)
+                            {
+                                if(!VehicleOptions.VehicleExtras[modelHash].ContainsKey(extra))
+                                    VehicleOptions.VehicleExtras[modelHash].Add(extra, extras[model][extra]);
+                                else
+                                    Debug.WriteLine($"[vMenu] [Warning] Your extras.json file contains 2 or more entries with the same extra index! ({model}, Extra {extra}) Please remove duplicate!");
+                            }
+                        }
+                    }
+                }
+            }
+            catch (JsonReaderException ex)
+            {
+                Debug.WriteLine($"\n\n^1[vMenu] [ERROR] ^7Your extras.json file contains a problem! Error details: {ex.Message}\n\n");
+            }
         }
 
         /// <summary>
@@ -168,8 +241,7 @@ namespace vMenuClient
         /// <param name="list"></param>
         private void UpdateBanList(string list)
         {
-            if (MainMenu.BannedPlayersMenu != null)
-                MainMenu.BannedPlayersMenu.UpdateBanList(list);
+            MainMenu.BannedPlayersMenu?.UpdateBanList(list);
         }
 
         /// <summary>
@@ -214,15 +286,19 @@ namespace vMenuClient
         {
             await UpdateWeatherParticles();
             SetArtificialLightsState(IsBlackoutEnabled);
+            SetArtificialLightsStateAffectsVehicles(!IsVehicleLightsEnabled);
+
             if (GetNextWeatherType() != GetHashKey(GetServerWeather))
             {
                 SetWeatherTypeOvertimePersist(GetServerWeather, (float)WeatherChangeTime);
-                await Delay(WeatherChangeTime * 1000 + 2000);
+                await Delay((WeatherChangeTime * 1000) + 2000);
 
                 TriggerEvent("vMenu:WeatherChangeComplete", GetServerWeather);
             }
+
             await Delay(1000);
         }
+
 
         /// <summary>
         /// This function will take care of time sync. It'll be called once, and never stop.
@@ -316,13 +392,15 @@ namespace vMenuClient
         {
             if (NetworkDoesNetworkIdExist(vehNetId))
             {
-                int veh = NetToVeh(vehNetId);
+                var veh = NetToVeh(vehNetId);
                 if (DoesEntityExist(veh))
                 {
-                    Vehicle vehicle = new Vehicle(veh);
+                    var vehicle = new Vehicle(veh);
 
                     if (vehicle == null || !vehicle.Exists())
+                    {
                         return;
+                    }
 
                     if (Game.PlayerPed.IsInVehicle(vehicle) && vehicleOwnedBy != Game.Player.ServerId)
                     {
@@ -368,7 +446,7 @@ namespace vMenuClient
         private async void UpdatePedDecors()
         {
             await Delay(1000);
-            int backup = PlayerAppearance.ClothingAnimationType;
+            var backup = PlayerAppearance.ClothingAnimationType;
             PlayerAppearance.ClothingAnimationType = -1;
             await Delay(100);
             PlayerAppearance.ClothingAnimationType = backup;
