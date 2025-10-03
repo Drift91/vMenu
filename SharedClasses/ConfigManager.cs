@@ -38,6 +38,9 @@ namespace vMenuShared
             // Vehicle Chameleon Colours
             vmenu_using_chameleon_colours,
 
+            // MP Ped preview setting,
+            vmenu_mp_ped_preview,
+
             // Kick & ban settings
             vmenu_default_ban_message_information,
             vmenu_auto_ban_cheaters,
@@ -51,6 +54,7 @@ namespace vMenuShared
             vmenu_dynamic_weather_timer,
             vmenu_current_weather,
             vmenu_blackout_enabled,
+            vmenu_vehicle_blackout_enabled,
             vmenu_weather_change_duration,
             vmenu_enable_snow,
 

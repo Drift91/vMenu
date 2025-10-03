@@ -20,6 +20,7 @@ namespace vMenuClient.menus
         #region Variables
         // Menu variable, will be defined in CreateMenu()
         private Menu menu;
+        public static Dictionary<uint, Dictionary<int, string>> VehicleExtras;
 
         // Submenus
         public Menu VehicleModMenu { get; private set; }
@@ -178,8 +179,21 @@ namespace vMenuClient.menus
             var dirtlevel = new List<string> { "No Dirt", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15" };
             var setDirtLevel = new MenuListItem("Set Dirt Level", dirtlevel, 0, "Select how much dirt should be visible on your vehicle, press ~r~enter~s~ " +
                 "to apply the selected level.");
-            var licensePlates = new List<string> { GetLabelText("CMOD_PLA_0"), GetLabelText("CMOD_PLA_1"), GetLabelText("CMOD_PLA_2"), GetLabelText("CMOD_PLA_3"),
-                GetLabelText("CMOD_PLA_4"), "North Yankton" };
+            var licensePlates = new List<string> {
+                GetLabelText("CMOD_PLA_0"), // Plate Index 0 // BlueOnWhite1
+                GetLabelText("CMOD_PLA_1"), // Plate Index 1 // BlueOnWhite2
+                GetLabelText("CMOD_PLA_2"), // Plate Index 2 // BlueOnWhite3
+                GetLabelText("CMOD_PLA_3"), // Plate Index 3 // YellowOnBlue
+                GetLabelText("CMOD_PLA_4"), // Plate Index 4 // YellowOnBlack
+                "North Yankton", // Plate Index 5 // NorthYankton
+                GetLabelText("CMOD_PLA_6"), // Plate Index 6 // ECola
+                GetLabelText("CMOD_PLA_7"), // Plate Index 7 // LasVenturas
+                GetLabelText("CMOD_PLA_8"), // Plate Index 8 // LibertyCity
+                GetLabelText("CMOD_PLA_9"), // Plate Index 9 // LSCarMeet
+                GetLabelText("CMOD_PLA_10"), // Plate Index 10 // LSPanic
+                GetLabelText("CMOD_PLA_11"), // Plate Index 11 // LSPounders
+                GetLabelText("CMOD_PLA_12"), // Plate Index 12 // Sprunk
+            };
             var setLicensePlateType = new MenuListItem("License Plate Type", licensePlates, 0, "Choose a license plate type and press ~r~enter ~s~to apply " +
                 "it to your vehicle.");
             var torqueMultiplierList = new List<string> { "x2", "x4", "x8", "x16", "x32", "x64", "x128", "x256", "x512", "x1024" };
@@ -486,7 +500,7 @@ namespace vMenuClient.menus
                     var vehicle = GetVehicle();
 
                     // Check if the player is the driver of the vehicle, if so, continue.
-                    if (vehicle.GetPedOnSeat(VehicleSeat.Driver) == new Ped(Game.PlayerPed.Handle))
+                    if (vehicle.GetPedOnSeat(VehicleSeat.Driver) == Game.PlayerPed)
                     {
                         // Repair vehicle.
                         if (item == fixVehicle)
@@ -694,6 +708,7 @@ namespace vMenuClient.menus
                 else if (item == infiniteFuel)
                 {
                     VehicleInfiniteFuel = _checked;
+                    TriggerEvent("vMenu:InfiniteFuelToggled", _checked);
                 }
             };
             #endregion
@@ -747,6 +762,27 @@ namespace vMenuClient.menus
                                 break;
                             case 5:
                                 veh.Mods.LicensePlateStyle = LicensePlateStyle.NorthYankton;
+                                break;
+                            case 6:
+                                veh.Mods.LicensePlateStyle = LicensePlateStyle.ECola;
+                                break;
+                            case 7:
+                                veh.Mods.LicensePlateStyle = LicensePlateStyle.LasVenturas;
+                                break;
+                            case 8:
+                                veh.Mods.LicensePlateStyle = LicensePlateStyle.LibertyCity;
+                                break;
+                            case 9:
+                                veh.Mods.LicensePlateStyle = LicensePlateStyle.LSCarMeet;
+                                break;
+                            case 10:
+                                veh.Mods.LicensePlateStyle = LicensePlateStyle.LSPanic;
+                                break;
+                            case 11:
+                                veh.Mods.LicensePlateStyle = LicensePlateStyle.LSPounders;
+                                break;
+                            case 12:
+                                veh.Mods.LicensePlateStyle = LicensePlateStyle.Sprunk;
                                 break;
                             default:
                                 break;
@@ -1144,7 +1180,7 @@ namespace vMenuClient.menus
                         switch (itemIndex)
                         {
                             case 0:
-                            case 1:    
+                            case 1:
                             case 2:
                                 primaryColor = VehicleData.ClassicColors[newIndex].id;
                                 break;
@@ -1201,7 +1237,7 @@ namespace vMenuClient.menus
                                 secondaryColor = VehicleData.WornColors[newIndex].id;
                                 break;
                         }
-                        
+
                         ClearVehicleCustomSecondaryColour(veh.Handle);
                         SetVehicleColours(veh.Handle, primaryColor, secondaryColor);
                     }
@@ -1598,6 +1634,12 @@ namespace vMenuClient.menus
                     // Check if the vehicle exists, it's actually a vehicle, it's not dead/broken and the player is in the drivers seat.
                     if (veh != null && veh.Exists() && !veh.IsDead && veh.Driver == Game.PlayerPed)
                     {
+                        Dictionary<int, string> extraLabels;
+                        if (!VehicleExtras.TryGetValue((uint)veh.Model.Hash, out extraLabels))
+                        {
+                            extraLabels = new Dictionary<int, string>();
+                        }
+                      
                         //List<int> extraIds = new List<int>();
                         // Loop through all possible extra ID's (AFAIK: 0-14).
                         for (var extra = 0; extra < 14; extra++)
@@ -1608,8 +1650,12 @@ namespace vMenuClient.menus
                                 // Add it's ID to the list.
                                 //extraIds.Add(extra);
 
+                                // Create the checkbox label
+                                string extraLabel;
+                                if (!extraLabels.TryGetValue(extra, out extraLabel))
+                                    extraLabel = $"Extra #{extra}";
                                 // Create a checkbox for it.
-                                var extraCheckbox = new MenuCheckboxItem($"Extra #{extra}", extra.ToString(), veh.IsExtraOn(extra));
+                                var extraCheckbox = new MenuCheckboxItem(extraLabel, extra.ToString(), veh.IsExtraOn(extra));
                                 // Add the checkbox to the menu.
                                 VehicleComponentsMenu.AddMenuItem(extraCheckbox);
 
@@ -1820,6 +1866,27 @@ namespace vMenuClient.menus
                             case LicensePlateStyle.NorthYankton:
                                 listItem.ListIndex = 5;
                                 break;
+                            case LicensePlateStyle.ECola:
+                                listItem.ListIndex = 6;
+                                break;
+                            case LicensePlateStyle.LasVenturas:
+                                listItem.ListIndex = 7;
+                                break;
+                            case LicensePlateStyle.LibertyCity:
+                                listItem.ListIndex = 8;
+                                break;
+                            case LicensePlateStyle.LSCarMeet:
+                                listItem.ListIndex = 9;
+                                break;
+                            case LicensePlateStyle.LSPanic:
+                                listItem.ListIndex = 10;
+                                break;
+                            case LicensePlateStyle.LSPounders:
+                                listItem.ListIndex = 11;
+                                break;
+                            case LicensePlateStyle.Sprunk:
+                                listItem.ListIndex = 12;
+                                break;
                             default:
                                 break;
                         }
@@ -1879,7 +1946,7 @@ namespace vMenuClient.menus
                 SetVehicleModKit(veh.Handle, 0);
 
                 // Get all mods available on this vehicle.
-                var mods = veh.Mods.GetAllMods();
+                var mods = GetAllVehicleMods(veh);
 
                 // Loop through all the mods.
                 foreach (var mod in mods)
@@ -1943,9 +2010,10 @@ namespace vMenuClient.menus
                     "Benny's (1)",  // 8
                     "Benny's (2)",  // 9
                     "Open Wheel",   // 10
-                    "Street"        // 11
+                    "Street",       // 11
+                    "Track"         // 12    
                 };
-                var vehicleWheelType = new MenuListItem("Wheel Type", wheelTypes, MathUtil.Clamp(GetVehicleWheelType(veh.Handle), 0, 11), $"Choose a ~y~wheel type~s~ for your vehicle.");
+                var vehicleWheelType = new MenuListItem("Wheel Type", wheelTypes, MathUtil.Clamp(GetVehicleWheelType(veh.Handle), 0, 12), $"Choose a ~y~wheel type~s~ for your vehicle.");
                 if (!veh.Model.IsBoat && !veh.Model.IsHelicopter && !veh.Model.IsPlane && !veh.Model.IsBicycle && !veh.Model.IsTrain)
                 {
                     VehicleModMenu.AddMenuItem(vehicleWheelType);
@@ -1956,7 +2024,7 @@ namespace vMenuClient.menus
                 var xenonHeadlights = new MenuCheckboxItem("Xenon Headlights", "Enable or disable ~b~xenon ~s~headlights.", IsToggleModOn(veh.Handle, 22));
                 var turbo = new MenuCheckboxItem("Turbo", "Enable or disable the ~y~turbo~s~ for this vehicle.", IsToggleModOn(veh.Handle, 18));
                 var bulletProofTires = new MenuCheckboxItem("Bullet Proof Tires", "Enable or disable ~y~bullet proof tires~s~ for this vehicle.", !GetVehicleTyresCanBurst(veh.Handle));
-                
+
                 // Add the checkboxes to the menu.
                 VehicleModMenu.AddMenuItem(toggleCustomWheels);
                 VehicleModMenu.AddMenuItem(xenonHeadlights);

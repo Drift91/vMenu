@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net462</TargetFramework>
     <DebugType>embedded</DebugType>
@@ -7,7 +7,7 @@
     <TargetName>$(AssemblyName)</TargetName>
     <OutputPath>..\build\vMenu\</OutputPath>
     <DefineConstants>CLIENT</DefineConstants>
-    <LangVersion>latest</LangVersion>
+    <LangVersion>12.0</LangVersion>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
   <ItemGroup>
@@ -16,11 +16,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="MenuAPI.FiveM" Version="3.2.2" />
+
+    <Reference Include="MenuAPI">
+      <HintPath>..\dependencies\client\MenuAPI.dll</HintPath>
+    </Reference>
 
     <Reference Include="Microsoft.CSharp" />
     
-    <PackageReference Include="CitizenFX.Core.Client" Version="1.0.8883">
+    <PackageReference Include="CitizenFX.Core.Client" Version="1.0.10188">
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
     
