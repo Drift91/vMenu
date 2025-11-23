@@ -1123,8 +1123,8 @@ namespace vMenuClient.menus
 
             inheritanceMenu.OnListIndexChange += (_menu, listItem, oldSelectionIndex, newSelectionIndex, itemIndex) =>
             {
-                _dadSelection = inheritanceDads.ListIndex;
-                _mumSelection = inheritanceMoms.ListIndex;
+                _dadSelection = dads[inheritanceDads.GetCurrentSelection()];
+                _mumSelection = moms[inheritanceMoms.GetCurrentSelection()];
 
                 SetHeadBlend();
             };
@@ -2054,8 +2054,8 @@ namespace vMenuClient.menus
                 }
                 else if (item == inheritanceButton) // update the inheritance menu anytime it's opened to prevent some weird glitch where old data is used.
                 {
-                    inheritanceDads.ListIndex = _dadSelection;
-                    inheritanceMoms.ListIndex = _mumSelection;
+                    inheritanceDads.ListIndex = dads.Values.ToList().IndexOf(_dadSelection);
+                    inheritanceMoms.ListIndex = moms.Values.ToList().IndexOf(_mumSelection);
                     inheritanceShapeMix.Position = (int)(_shapeMixValue * 10f);
                     inheritanceSkinMix.Position = (int)(_skinMixValue * 10f);
                     inheritanceMenu.RefreshIndex();
