@@ -2153,9 +2153,9 @@ namespace vMenuClient.menus
                     var health = Game.PlayerPed.Health;
                     var armour = Game.PlayerPed.Armor;
 
-                    SaveWeaponLoadout("vmenu_temp_weapons_loadout_before_respawn");
+                    SaveWeaponLoadout("vmenu_temp_weapon_loadout_before_respawn");
                     SetPlayerModel(Game.Player.Handle, model);
-                    await SpawnWeaponLoadoutAsync("vmenu_temp_weapons_loadout_before_respawn", false, true, true);
+                    await SpawnWeaponLoadoutAsync("vmenu_temp_weapon_loadout_before_respawn", false, true, true);
 
                     Game.Player.MaxArmor = maxArmour;
                     Game.PlayerPed.MaxHealth = maxHealth;
@@ -2188,9 +2188,9 @@ namespace vMenuClient.menus
                     var health = Game.PlayerPed.Health;
                     var armour = Game.PlayerPed.Armor;
 
-                    SaveWeaponLoadout("vmenu_temp_weapons_loadout_before_respawn");
+                    SaveWeaponLoadout("vmenu_temp_weapon_loadout_before_respawn");
                     SetPlayerModel(Game.Player.Handle, model);
-                    await SpawnWeaponLoadoutAsync("vmenu_temp_weapons_loadout_before_respawn", false, true, true);
+                    await SpawnWeaponLoadoutAsync("vmenu_temp_weapon_loadout_before_respawn", false, true, true);
 
                     Game.Player.MaxArmor = maxArmour;
                     Game.PlayerPed.MaxHealth = maxHealth;
@@ -2248,9 +2248,9 @@ namespace vMenuClient.menus
                 var health = Game.PlayerPed.Health;
                 var armour = Game.PlayerPed.Armor;
 
-                SaveWeaponLoadout("vmenu_temp_weapons_loadout_before_respawn");
+                SaveWeaponLoadout("vmenu_temp_weapon_loadout_before_respawn");
                 SetPlayerModel(Game.Player.Handle, currentCharacter.ModelHash);
-                await SpawnWeaponLoadoutAsync("vmenu_temp_weapons_loadout_before_respawn", false, true, true);
+                await SpawnWeaponLoadoutAsync("vmenu_temp_weapon_loadout_before_respawn", false, true, true);
 
                 Game.Player.MaxArmor = maxArmour;
                 Game.PlayerPed.MaxHealth = maxHealth;
