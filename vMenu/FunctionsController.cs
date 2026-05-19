@@ -2298,6 +2298,7 @@ namespace vMenuClient
                                 {
                                     p.Character.AttachedBlip.Delete(); // remove player blip if it exists.
                                 }
+                                await Delay(200);
                             }
                         }
                     }
