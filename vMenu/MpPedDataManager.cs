@@ -1,14 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using MenuAPI;
-using Newtonsoft.Json;
+﻿using System.Collections.Generic;
+
 using CitizenFX.Core;
-using static CitizenFX.Core.UI.Screen;
-using static CitizenFX.Core.Native.API;
-using static vMenuClient.CommonFunctions;
 
 namespace vMenuClient
 {
@@ -31,6 +23,7 @@ namespace vMenuClient
 
         public struct PedTattoos
         {
+            public List<KeyValuePair<string, string>> HairTattoos;
             public List<KeyValuePair<string, string>> TorsoTattoos;
             public List<KeyValuePair<string, string>> HeadTattoos;
             public List<KeyValuePair<string, string>> LeftArmTattoos;
@@ -38,6 +31,7 @@ namespace vMenuClient
             public List<KeyValuePair<string, string>> LeftLegTattoos;
             public List<KeyValuePair<string, string>> RightLegTattoos;
             public List<KeyValuePair<string, string>> BadgeTattoos;
+            public List<KeyValuePair<string, string>> AddonTattoos;
         }
 
         // probably won't be needed, since there's already makeup and tattoos now.
@@ -115,6 +109,7 @@ namespace vMenuClient
             public PropVariations PropVariations;
             public FaceShapeFeatures FaceShapeFeatures;
             public PedAppearance PedAppearance;
+            // DO NOT RENAME - 7+ years of existing saved data will stop working otherwise
             public PedTattoos PedTatttoos;
             public PedFacePaints PedFacePaints;
             public bool IsMale;
@@ -123,6 +118,7 @@ namespace vMenuClient
             public int Version;
             public string WalkingStyle;
             public string FacialExpression;
+            public string Category;
         }
     }
 }
