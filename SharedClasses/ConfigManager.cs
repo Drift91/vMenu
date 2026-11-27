@@ -30,13 +30,22 @@ namespace vMenuShared
             vmenu_enable_animals_spawn_menu,
             vmenu_pvp_mode,
             keep_player_head_props,
-            vmenu_disable_server_info_convars,
             vmenu_player_names_distance,
             vmenu_disable_entity_outlines_tool,
             vmenu_disable_player_stats_setup,
 
-            // Vehicle Chameleon Colours
+            // Vehicle Settings
             vmenu_using_chameleon_colours,
+            vmenu_vehicle_spawn_delay,
+            vmenu_delete_vehicle_distance,
+
+            // Prevent Extras Abuse
+            vmenu_prevent_extras_when_damaged,
+            vmenu_allowed_engine_damage_for_extra_change,
+            vmenu_allowed_body_damage_for_extra_change,
+
+            // MP Ped preview setting,
+            vmenu_mp_ped_preview,
 
             // Kick & ban settings
             vmenu_default_ban_message_information,
@@ -51,8 +60,10 @@ namespace vMenuShared
             vmenu_dynamic_weather_timer,
             vmenu_current_weather,
             vmenu_blackout_enabled,
+            vmenu_vehicle_blackout_enabled,
             vmenu_weather_change_duration,
             vmenu_enable_snow,
+            vmenu_smooth_time_transitions,
 
             // Time settings
             vmenu_enable_time_sync,
@@ -67,6 +78,9 @@ namespace vMenuShared
 
             // Key Mapping
             vmenu_keymapping_id,
+            
+            // theme
+            vmenu_theme,
         }
 
         /// <summary>
@@ -84,12 +98,12 @@ namespace vMenuShared
         /// </summary>
         /// <param name="setting"></param>
         /// <returns></returns>
-        public static int GetSettingsInt(Setting setting)
+        public static int GetSettingsInt(Setting setting, int defaultValue = -1)
         {
-            var convarInt = GetConvarInt(setting.ToString(), -1);
-            if (convarInt == -1)
+            var convarInt = GetConvarInt(setting.ToString(), defaultValue);
+            if (convarInt == defaultValue)
             {
-                if (int.TryParse(GetConvar(setting.ToString(), "-1"), out var convarIntAlt))
+                if (int.TryParse(GetConvar(setting.ToString(), defaultValue.ToString()), out var convarIntAlt))
                 {
                     return convarIntAlt;
                 }
@@ -102,13 +116,13 @@ namespace vMenuShared
         /// </summary>
         /// <param name="setting"></param>
         /// <returns></returns>
-        public static float GetSettingsFloat(Setting setting)
+        public static float GetSettingsFloat(Setting setting, float defaultValue = -1f)
         {
-            if (float.TryParse(GetConvar(setting.ToString(), "-1.0"), out var result))
+            if (float.TryParse(GetConvar(setting.ToString(), defaultValue.ToString()), out var result))
             {
                 return result;
             }
-            return -1f;
+            return defaultValue;
         }
 
         /// <summary>

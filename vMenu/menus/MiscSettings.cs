@@ -12,6 +12,7 @@ using vMenuClient.data;
 
 using static CitizenFX.Core.Native.API;
 using static vMenuClient.CommonFunctions;
+using static vMenuShared.ConfigManager;
 using static vMenuShared.PermissionsManager;
 
 namespace vMenuClient.menus
@@ -34,6 +35,7 @@ namespace vMenuClient.menus
         public bool JoinQuitNotifications { get; private set; } = UserDefaults.MiscJoinQuitNotifications;
         public bool LockCameraX { get; private set; } = false;
         public bool LockCameraY { get; private set; } = false;
+        public bool MPPedPreviews { get; private set; } = UserDefaults.MPPedPreviews;
         public bool ShowLocationBlips { get; private set; } = UserDefaults.MiscLocationBlips;
         public bool ShowPlayerBlips { get; private set; } = UserDefaults.MiscShowPlayerBlips;
         public bool MiscShowOverheadNames { get; private set; } = UserDefaults.MiscShowOverheadNames;
@@ -48,7 +50,16 @@ namespace vMenuClient.menus
         public bool RestorePlayerWeapons { get; private set; } = UserDefaults.MiscRestorePlayerWeapons;
         public bool DrawTimeOnScreen { get; internal set; } = UserDefaults.MiscShowTime;
         public bool MiscRightAlignMenu { get; private set; } = UserDefaults.MiscRightAlignMenu;
-        public bool MiscDisablePrivateMessages { get; private set; } = UserDefaults.MiscDisablePrivateMessages;
+        private bool _disablePrivateMessages;
+        public bool MiscDisablePrivateMessages
+        {
+            get => _disablePrivateMessages;
+            set
+            {
+                _disablePrivateMessages = value;
+                Game.Player.State.Set("vmenu_pms_disabled", value, true);
+            }
+        }
         public bool MiscDisableControllerSupport { get; private set; } = UserDefaults.MiscDisableControllerSupport;
 
         internal bool TimecycleEnabled { get; private set; } = false;
@@ -67,6 +78,12 @@ namespace vMenuClient.menus
         public bool KbPointKeys { get; private set; } = UserDefaults.KbPointKeys;
 
         internal static List<vMenuShared.ConfigManager.TeleportLocation> TpLocations = new();
+
+        public MiscSettings()
+        {
+            // Sets statebag when resource starts
+            MiscDisablePrivateMessages = UserDefaults.MiscDisablePrivateMessages;
+        }
 
         /// <summary>
         /// Creates the menu.
@@ -125,7 +142,6 @@ namespace vMenuClient.menus
             {
                 RightIcon = MenuItem.Icon.TICK
             };
-            var exportData = new MenuItem("Export/Import Data", "Coming soon (TM): the ability to import and export your saved data.");
             var joinQuitNotifs = new MenuCheckboxItem("Join / Quit Notifications", "Receive notifications when someone joins or leaves the server.", JoinQuitNotifications);
             var deathNotifs = new MenuCheckboxItem("Death Notifications", "Receive notifications when someone dies or gets killed.", DeathNotifications);
             var nightVision = new MenuCheckboxItem("Toggle Night Vision", "Enable or disable night vision.", false);
@@ -141,6 +157,8 @@ namespace vMenuClient.menus
             var clearArea = new MenuItem("Clear Area", "Clears the area around your player (100 meters). Damage, dirt, peds, props, vehicles, etc. Everything gets cleaned up, fixed and reset to the default world state.");
             var lockCamX = new MenuCheckboxItem("Lock Camera Horizontal Rotation", "Locks your camera horizontal rotation. Could be useful in helicopters I guess.", false);
             var lockCamY = new MenuCheckboxItem("Lock Camera Vertical Rotation", "Locks your camera vertical rotation. Could be useful in helicopters I guess.", false);
+
+            var mpPedPreview = new MenuCheckboxItem("3D MP Ped Preview", "Shows a 3D Ped preview when viewing saved MP Peds.", MPPedPreviews);
 
             // Entity spawner
             var spawnNewEntity = new MenuItem("Spawn New Entity", "Spawns entity into the world and lets you set its position and rotation");
@@ -465,8 +483,7 @@ namespace vMenuClient.menus
             {
                 if (item == clearArea)
                 {
-                    var pos = Game.PlayerPed.Position;
-                    BaseScript.TriggerServerEvent("vMenu:ClearArea", pos.X, pos.Y, pos.Z);
+                    BaseScript.TriggerServerEvent("vMenu:ClearArea");
                 }
             };
 
@@ -645,10 +662,13 @@ namespace vMenuClient.menus
             menu.AddMenuItem(hideHud);
             menu.AddMenuItem(lockCamX);
             menu.AddMenuItem(lockCamY);
-            if (MainMenu.EnableExperimentalFeatures)
+
+            // If disabled at a server level, don't show the option to players
+            if (GetSettingsBool(Setting.vmenu_mp_ped_preview))
             {
-                menu.AddMenuItem(exportData);
+                menu.AddMenuItem(mpPedPreview);
             }
+
             menu.AddMenuItem(saveSettings);
 
             // Handle checkbox changes.
@@ -733,6 +753,10 @@ namespace vMenuClient.menus
                 {
                     LockCameraY = _checked;
                 }
+                else if (item == mpPedPreview)
+                {
+                    MPPedPreviews = _checked;
+                }
                 else if (item == locationBlips)
                 {
                     ToggleBlips(_checked);
@@ -764,26 +788,7 @@ namespace vMenuClient.menus
             // Handle button presses.
             menu.OnItemSelect += (sender, item, index) =>
             {
-                // export data
-                if (item == exportData)
-                {
-                    MenuController.CloseAllMenus();
-                    var vehicles = GetSavedVehicles();
-                    var normalPeds = StorageManager.GetSavedPeds();
-                    var mpPeds = StorageManager.GetSavedMpPeds();
-                    var weaponLoadouts = WeaponLoadouts.GetSavedWeapons();
-                    var data = JsonConvert.SerializeObject(new
-                    {
-                        saved_vehicles = vehicles,
-                        normal_peds = normalPeds,
-                        mp_characters = mpPeds,
-                        weapon_loadouts = weaponLoadouts
-                    });
-                    SendNuiMessage(data);
-                    SetNuiFocus(true, true);
-                }
-                // save settings
-                else if (item == saveSettings)
+                if (item == saveSettings)
                 {
                     UserDefaults.SaveSettings();
                 }

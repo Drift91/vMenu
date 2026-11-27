@@ -318,6 +318,12 @@ namespace vMenuClient
             set { SetSavedSettingsInt("miscLastTimeCycleModifierStrength", value); }
         }
 
+        public static bool MPPedPreviews
+        {
+            get { return GetSettingsBool("mpPedPreviews"); }
+            set { SetSavedSettingsBool("mpPedPreviews", value); }
+        }
+
         #region keybind menu
         public static bool KbTpToWaypoint
         {
@@ -433,7 +439,8 @@ namespace vMenuClient
                     "vehicleGodEngine" or
                     "vehicleGodVisual" or
                     "vehicleGodStrongWheels" or
-                    "vehicleGodRamp"
+                    "vehicleGodRamp" or
+                    "mpPedPreviews"
                     )
                 {
                     SetSavedSettingsBool(kvpString, true);
@@ -601,6 +608,9 @@ namespace vMenuClient
 
                 KbPointKeys = MainMenu.MiscSettingsMenu.KbPointKeys;
                 prefs.Add("kbPointKeys", KbPointKeys);
+
+                MPPedPreviews = MainMenu.MiscSettingsMenu.MPPedPreviews;
+                prefs.Add("mpPedPreviews", MPPedPreviews);
             }
 
             if (MainMenu.VehicleOptionsMenu != null)

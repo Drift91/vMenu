@@ -10,6 +10,8 @@ using Newtonsoft.Json;
 
 using vMenuClient.menus;
 
+using vMenuShared;
+
 using static CitizenFX.Core.Native.API;
 using static vMenuClient.CommonFunctions;
 using static vMenuShared.ConfigManager;
@@ -23,6 +25,7 @@ namespace vMenuClient
 
         public static bool PermissionsSetupComplete => ArePermissionsSetup;
         public static bool ConfigOptionsSetupComplete = false;
+        public static bool AddonPermissionSetup = false;
 
         public static string MenuToggleKey { get; private set; } = "M"; // M by default
         public static string NoClipKey { get; private set; } = "F2"; // F2 by default 
@@ -68,7 +71,8 @@ namespace vMenuClient
         /// </summary>
         public MainMenu()
         {
-            PlayersList = new NativePlayerList(Players);
+            // GetActivePlayers only holds players in scope, so the server provides the rest.
+            PlayersList = new InfinityPlayerList(Players);
 
             #region cleanup unused kvps
             var tmp_kvp_handle = StartFindKvp("");
@@ -120,7 +124,7 @@ namespace vMenuClient
             }
             #endregion
             #region keymapping
-            string KeyMappingID = String.IsNullOrWhiteSpace(GetSettingsString(Setting.vmenu_keymapping_id)) ? "Default" : GetSettingsString(Setting.vmenu_keymapping_id);
+            string KeyMappingID = GetKeyMappingId();
             RegisterCommand($"vMenu:{KeyMappingID}:NoClip", new Action<dynamic, List<dynamic>, string>((dynamic source, List<dynamic> args, string rawCommand) =>
             {
                 if (IsAllowed(Permission.NoClip))
@@ -144,18 +148,12 @@ namespace vMenuClient
                     }
                 }
             }), false);
-            RegisterCommand($"vMenu:{KeyMappingID}:MenuToggle", new Action<dynamic, List<dynamic>, string>((dynamic source, List<dynamic> args, string rawCommand) =>
+            
+            RegisterCommand("vMenu:DV", new Action<dynamic, List<dynamic>, string>((source, args, rawCommand) =>
             {
-                if (MenuEnabled)
+                if (IsAllowed(Permission.VODelete))
                 {
-                    if (!MenuController.IsAnyMenuOpen())
-                    {
-                        Menu.OpenMenu();
-                    }
-                    else
-                    {
-                        MenuController.CloseAllMenus();
-                    }
+                    DeleteVehicle();
                 }
             }), false);
 
@@ -176,7 +174,7 @@ namespace vMenuClient
             {
                 MenuToggleKey = "M";
             }
-            MenuController.MenuToggleKey = (Control)(-1); // disables the menu toggle key
+            MenuController.EnableMenuToggleKey = false; // vMenu registers its own toggle key below
             RegisterKeyMapping($"vMenu:{KeyMappingID}:NoClip", "vMenu NoClip Toggle Button", "keyboard", NoClipKey);
             RegisterKeyMapping($"vMenu:{KeyMappingID}:MenuToggle", "vMenu Toggle Button", "keyboard", MenuToggleKey);
             RegisterKeyMapping($"vMenu:{KeyMappingID}:MenuToggle", "vMenu Toggle Button Controller", "pad_digitalbuttonany", "start_index");
@@ -198,11 +196,6 @@ namespace vMenuClient
                         Debug.WriteLine("check");
                         Debug.Write(JsonConvert.SerializeObject(d, Formatting.Indented) + "\n");
                     }
-                }), false);
-
-                RegisterCommand("clearfocus", new Action<dynamic, List<dynamic>, string>((dynamic source, List<dynamic> args, string rawCommand) =>
-                {
-                    SetNuiFocus(false, false);
                 }), false);
             }
 
@@ -339,60 +332,71 @@ namespace vMenuClient
 
             // Clear all previous pause menu info/brief messages on resource start.
             ClearBrief();
-
-            // Request the permissions data from the server.
-            TriggerServerEvent("vMenu:RequestPermissions");
-
-            // Request server state from the server.
-            TriggerServerEvent("vMenu:RequestServerState");
         }
 
         #region Infinity bits
-        [EventHandler("vMenu:SetServerState")]
-        public void SetServerState(IDictionary<string, object> data)
-        {
-            if (data.TryGetValue("IsInfinity", out var isInfinity))
-            {
-                if (isInfinity is bool isInfinityBool)
-                {
-                    if (isInfinityBool)
-                    {
-                        PlayersList = new InfinityPlayerList(Players);
-                    }
-                }
-            }
-        }
-
         [EventHandler("vMenu:ReceivePlayerList")]
         public void ReceivedPlayerList(IList<object> players)
         {
             PlayersList?.ReceivedPlayerList(players);
         }
 
+        struct RPCData
+        {
+            public bool IsCompleted { get; set; }
+            public Vector3 Coords { get; set; }
+        }
+
+        private static Dictionary<long, RPCData> rpcQueue = new Dictionary<long, RPCData>();
+        private static long rpcIdCounter = 0;
+
+        [EventHandler("vMenu:GetPlayerCoords:reply")]
+        public static void PlayerCoordinatesReceived(long rpcId, Vector3 coords)
+        {
+            if (rpcQueue.ContainsKey(rpcId))
+            {
+                var rpcItem = rpcQueue[rpcId];
+                rpcItem.IsCompleted = true;
+                rpcItem.Coords = coords;
+                rpcQueue[rpcId] = rpcItem;
+            }
+            else
+            {
+                Debug.WriteLine($"[vMenu] Warning: Received player coordinates for unknown RPC ID: {rpcId}");
+            }
+        }
+
         public static async Task<Vector3> RequestPlayerCoordinates(int serverId)
         {
-            var coords = Vector3.Zero;
-            var completed = false;
+            long rpcId = rpcIdCounter++;
+            rpcQueue.Add(rpcId, new RPCData { IsCompleted = false, Coords = Vector3.Zero });
 
-            // TODO: replace with client<->server RPC once implemented in CitizenFX!
-            Func<Vector3, bool> CallbackFunction = (data) =>
-            {
-                coords = data;
-                completed = true;
-                return true;
-            };
+            TriggerServerEvent("vMenu:GetPlayerCoords", rpcId, serverId);
 
-            TriggerServerEvent("vMenu:GetPlayerCoords", serverId, CallbackFunction);
-
-            while (!completed)
+            while (!rpcQueue[rpcId].IsCompleted)
             {
                 await Delay(0);
             }
 
+            Vector3 coords = rpcQueue[rpcId].Coords;
+            rpcQueue.Remove(rpcId);
+
             return coords;
         }
         #endregion
+        #region Set Permissions function
+        /// <summary>
+        /// Set the permissions for this client.
+        /// </summary>
+        /// <param name="dict"></param>
+        public static void SetSupplementaryPermissions(string permissionsList)
+        {
+            vMenuShared.SupplementaryPermissionManager.SetPermissions(permissionsList);
 
+            AddonPermissionSetup = true;
+            SupplementaryPermissionManager.ArePermissionsSetup = true;
+        }
+        #endregion
         #region Set Permissions function
         /// <summary>
         /// Set the permissions for this client.
@@ -429,7 +433,7 @@ namespace vMenuClient
                 IsAllowed(Permission.VSOpenWheel, checkAnyway: true)
             };
             ArePermissionsSetup = true;
-            while (!ConfigOptionsSetupComplete)
+            while (!ConfigOptionsSetupComplete && !AddonPermissionSetup)
             {
                 await Delay(100);
             }
@@ -503,24 +507,50 @@ namespace vMenuClient
                 // Manage Stamina
                 if (PlayerOptionsMenu != null && PlayerOptionsMenu.PlayerStamina && IsAllowed(Permission.POUnlimitedStamina))
                 {
-                    StatSetInt((uint)GetHashKey("MP0_STAMINA"), 100, true);
+                    StatSetInt(Game.GenerateHashASCII("MP0_STAMINA"), 100, true);
                 }
                 else
                 {
-                    StatSetInt((uint)GetHashKey("MP0_STAMINA"), 0, true);
+                    StatSetInt(Game.GenerateHashASCII("MP0_STAMINA"), 0, true);
                 }
 
                 // Manage other stats, in order of appearance in the pause menu (stats) page.
-                StatSetInt((uint)GetHashKey("MP0_SHOOTING_ABILITY"), 100, true);        // Shooting
-                StatSetInt((uint)GetHashKey("MP0_STRENGTH"), 100, true);                // Strength
-                StatSetInt((uint)GetHashKey("MP0_STEALTH_ABILITY"), 100, true);         // Stealth
-                StatSetInt((uint)GetHashKey("MP0_FLYING_ABILITY"), 100, true);          // Flying
-                StatSetInt((uint)GetHashKey("MP0_WHEELIE_ABILITY"), 100, true);         // Driving
-                StatSetInt((uint)GetHashKey("MP0_LUNG_CAPACITY"), 100, true);           // Lung Capacity
-                StatSetFloat((uint)GetHashKey("MP0_PLAYER_MENTAL_STATE"), 0f, true);    // Mental State
+                StatSetInt(Game.GenerateHashASCII("MP0_SHOOTING_ABILITY"), 100, true);        // Shooting
+                StatSetInt(Game.GenerateHashASCII("MP0_STRENGTH"), 100, true);                // Strength
+                StatSetInt(Game.GenerateHashASCII("MP0_STEALTH_ABILITY"), 100, true);         // Stealth
+                StatSetInt(Game.GenerateHashASCII("MP0_FLYING_ABILITY"), 100, true);          // Flying
+                StatSetInt(Game.GenerateHashASCII("MP0_WHEELIE_ABILITY"), 100, true);         // Driving
+                StatSetInt(Game.GenerateHashASCII("MP0_LUNG_CAPACITY"), 100, true);           // Lung Capacity
+                StatSetFloat(Game.GenerateHashASCII("MP0_PLAYER_MENTAL_STATE"), 0f, true);    // Mental State
             }
 
+            RegisterCommand($"vMenu:{GetKeyMappingId()}:MenuToggle", new Action<dynamic, List<dynamic>, string>((dynamic source, List<dynamic> args, string rawCommand) =>
+            {
+                if (MenuEnabled)
+                {
+                    if (!MenuController.IsAnyMenuOpen())
+                    {
+                        Menu.OpenMenu();
+                    }
+                    else
+                    {
+                        MenuController.CloseAllMenus();
+                    }
+                }
+            }), false);
+
             TriggerEvent("vMenu:SetupTickFunctions");
+            
+            string currentTheme = GetSettingsString(Setting.vmenu_theme);
+            if (currentTheme == "custom")
+            {
+                NuiTuning.RegisterTheme("custom", "themes/custom.css");
+                NuiTuning.SetTheme("custom");
+                foreach (Menu m in MenuController.Menus)
+                {
+                    m.HeaderImage = "custom";
+                }
+            }
         }
 
         /// <summary>
@@ -899,6 +929,10 @@ namespace vMenuClient
                 MenuController.EnableMenuToggleKeyOnController = !MiscSettingsMenu.MiscDisableControllerSupport;
             }
         }
+        #endregion
+
+        #region Utilities
+        private static string GetKeyMappingId() => string.IsNullOrWhiteSpace(GetSettingsString(Setting.vmenu_keymapping_id)) ? "Default" : GetSettingsString(Setting.vmenu_keymapping_id);
         #endregion
     }
 }
