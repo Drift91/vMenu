@@ -217,26 +217,48 @@ namespace vMenuClient.menus
             #region Submenus
             // Submenu's
             VehicleModMenu = new Menu("Mod Menu", "Vehicle Mods");
-            VehicleModMenu.InstructionalButtons.Add(Control.Jump, "Toggle Vehicle Doors");
-            VehicleModMenu.ButtonPressHandlers.Add(new Menu.ButtonPressHandler(Control.Jump, Menu.ControlPressCheckType.JUST_PRESSED, new Action<Menu, Control>((m, c) =>
+            VehicleModMenu.AddKeyBinding("toggle_vehicle_doors", "vMenu: toggle vehicle doors", "SPACE", "RLEFT_INDEX", MenuKeyPressType.JUST_PRESSED, new Action<Menu, MenuKeyBinding>((m, c) =>
             {
                 var veh = GetVehicle();
                 if (veh != null && veh.Exists() && !veh.IsDead && veh.Driver == Game.PlayerPed)
                 {
-                    var open = GetVehicleDoorAngleRatio(veh.Handle, 0) < 0.1f;
-                    if (open)
+                    bool anyOpen = false;
+
+                    // Check if any non-broken door is open
+                    for (int i = 0; i < 8; i++)
                     {
-                        for (var i = 0; i < 8; i++)
+                        if (!IsVehicleDoorDamaged(veh.Handle, i) &&
+                            GetVehicleDoorAngleRatio(veh.Handle, i) > 0.1f)
                         {
-                            SetVehicleDoorOpen(veh.Handle, i, false, false);
+                            anyOpen = true;
+                            break;
+                        }
+                    }
+
+                    if (anyOpen)
+                    {
+                        // Close all valid doors
+                        for (int i = 0; i < 8; i++)
+                        {
+                            if (!IsVehicleDoorDamaged(veh.Handle, i))
+                            {
+                                SetVehicleDoorShut(veh.Handle, i, false);
+                            }
                         }
                     }
                     else
                     {
-                        SetVehicleDoorsShut(veh.Handle, false);
+                        // Open all valid doors
+                        for (int i = 0; i < 8; i++)
+                        {
+                            if (!IsVehicleDoorDamaged(veh.Handle, i))
+                            {
+                                SetVehicleDoorOpen(veh.Handle, i, false, false);
+                            }
+                        }
                     }
                 }
-            }), false));
+            }), "Toggle Vehicle Doors");
             VehicleDoorsMenu = new Menu("Vehicle Doors", "Vehicle Doors Management");
             VehicleWindowsMenu = new Menu("Vehicle Windows", "Vehicle Windows Management");
             VehicleComponentsMenu = new Menu("Vehicle Extras", "Vehicle Extras/Components");
@@ -2068,7 +2090,10 @@ namespace vMenuClient.menus
                     veh = GetVehicle();
 
                     // Get the proper localized mod type (suspension, armor, etc) name.
-                    var typeName = mod.LocalizedModTypeName;
+                    var rawLabel = GetModSlotName(veh.Handle, (int)mod.ModType);
+                    var resolvedLabel = !string.IsNullOrEmpty(rawLabel) ? GetLabelText(rawLabel) : null;
+                    if (resolvedLabel == "NULL") { resolvedLabel = null; }
+                    var typeName = resolvedLabel ?? mod.LocalizedModTypeName ?? rawLabel;
 
                     // Create a list to all available upgrades for this modtype.
                     var modlist = new List<string>();

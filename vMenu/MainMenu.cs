@@ -71,7 +71,8 @@ namespace vMenuClient
         /// </summary>
         public MainMenu()
         {
-            PlayersList = new NativePlayerList(Players);
+            // GetActivePlayers only holds players in scope, so the server provides the rest.
+            PlayersList = new InfinityPlayerList(Players);
 
             #region cleanup unused kvps
             var tmp_kvp_handle = StartFindKvp("");
@@ -173,7 +174,7 @@ namespace vMenuClient
             {
                 MenuToggleKey = "M";
             }
-            MenuController.MenuToggleKey = (Control)(-1); // disables the menu toggle key
+            MenuController.EnableMenuToggleKey = false; // vMenu registers its own toggle key below
             RegisterKeyMapping($"vMenu:{KeyMappingID}:NoClip", "vMenu NoClip Toggle Button", "keyboard", NoClipKey);
             RegisterKeyMapping($"vMenu:{KeyMappingID}:MenuToggle", "vMenu Toggle Button", "keyboard", MenuToggleKey);
             RegisterKeyMapping($"vMenu:{KeyMappingID}:MenuToggle", "vMenu Toggle Button Controller", "pad_digitalbuttonany", "start_index");
@@ -331,11 +332,6 @@ namespace vMenuClient
 
             // Clear all previous pause menu info/brief messages on resource start.
             ClearBrief();
-
-            if (GlobalState.Get("vmenu_onesync") is bool value && value)
-            {
-                PlayersList = new InfinityPlayerList(Players);
-            }
         }
 
         #region Infinity bits
@@ -544,6 +540,17 @@ namespace vMenuClient
             }), false);
 
             TriggerEvent("vMenu:SetupTickFunctions");
+            
+            string currentTheme = GetSettingsString(Setting.vmenu_theme);
+            if (currentTheme == "custom")
+            {
+                NuiTuning.RegisterTheme("custom", "themes/custom.css");
+                NuiTuning.SetTheme("custom");
+                foreach (Menu m in MenuController.Menus)
+                {
+                    m.HeaderImage = "custom";
+                }
+            }
         }
 
         /// <summary>

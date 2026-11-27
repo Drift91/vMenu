@@ -2824,8 +2824,12 @@ namespace vMenuClient
                     Game.PlayerPed.Weapons.RemoveAll();
                 }
 
+                // The saved Perm is an enum number that shifts whenever a weapon permission is added, so it is looked up by name instead.
+                Permission ResolveCurrentPerm(ValidWeapon wp) =>
+                    wp.SpawnName != null && ValidWeapons.weaponPermissions.TryGetValue(wp.SpawnName, out var p) ? p : Permission.WPSpawn;
+
                 // Check if any weapon is not allowed.
-                if (!ignoreSettingsAndPerms && loadout.Any((wp) => !IsAllowed(wp.Perm)))
+                if (!ignoreSettingsAndPerms && loadout.Any((wp) => !IsAllowed(ResolveCurrentPerm(wp))))
                 {
                     Notify.Alert("One or more weapon(s) in this saved loadout are not allowed on this server. Those weapons will not be loaded.");
                 }
@@ -2840,7 +2844,7 @@ namespace vMenuClient
                         continue;
                     }
 
-                    if (ignoreSettingsAndPerms || IsAllowed(w.Perm))
+                    if (ignoreSettingsAndPerms || IsAllowed(ResolveCurrentPerm(w)))
                     {
                         // Give the weapon
                         GiveWeaponToPed(Game.PlayerPed.Handle, w.Hash, w.CurrentAmmo > -1 ? w.CurrentAmmo : w.GetMaxAmmo, false, false);
